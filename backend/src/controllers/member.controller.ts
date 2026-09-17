@@ -116,11 +116,52 @@ export function normalizeMemberPayload(body: any = {}) {
   };
 }
 
+/**
+ * Parse "2026–27" (en-dash or hyphen) into a UTC academic-year window:
+ * 2026-06-01T00:00:00Z → 2027-05-31T23:59:59.999Z. Returns null if malformed.
+ */
+function academicYearWindow(academicYear: string): { start: Date; end: Date } | null {
+  const match = /^\s*(\d{4})\s*(?:[–-]\s*\d{2,4})?\s*$/.exec(academicYear || '');
+  if (!match) return null;
+  const startYear = parseInt(match[1], 10);
+  if (Number.isNaN(startYear)) return null;
+  return {
+    start: new Date(Date.UTC(startYear, 5, 1)),
+    end: new Date(Date.UTC(startYear + 1, 4, 31, 23, 59, 59, 999)),
+  };
+}
+
+/** Current academic year start year (June boundary), matching the frontend convention. */
+function currentAcademicYearStart(): number {
+  const now = new Date();
+  return now.getUTCMonth() >= 5 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+}
+
 // GET /api/members  (public)
-export async function listMembers(_: any, res: Response) {
+export async function listMembers(req: any, res: Response) {
   try {
     await connectDB();
-    const members = await Member.find({ isActive: { $not: { $eq: false } } }).sort({ team: 1, order: 1, name: 1 }).lean();
+    const filter: Record<string, unknown> = { isActive: { $not: { $eq: false } } };
+
+    // Optional server-side board-tenure filter: ?academicYear=2026–27
+    const requestedYear = typeof req.query.academicYear === 'string' ? req.query.academicYear.trim() : '';
+    if (requestedYear) {
+      const window = academicYearWindow(requestedYear);
+      if (!window) {
+        res.status(400).json({ success: false, message: 'Invalid academic year format.' });
+        return;
+      }
+      const isCurrentBoard = window.start.getUTCFullYear() === currentAcademicYearStart();
+      if (isCurrentBoard) {
+        // Current board: members who joined within the window OR have no
+        // joinedDate (legacy members always belong to the current board).
+        filter.$or = [{ joinedDate: { $gte: window.start, $lte: window.end } }, { joinedDate: null }];
+      } else {
+        filter.joinedDate = { $gte: window.start, $lte: window.end };
+      }
+    }
+
+    const members = await Member.find(filter).sort({ team: 1, order: 1, name: 1 }).lean();
     const grouped: Record<string, any[]> = {};
     for (const t of TEAMS) grouped[t] = [];
     for (const m of members) {

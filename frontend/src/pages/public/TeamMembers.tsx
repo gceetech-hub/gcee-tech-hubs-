@@ -30,7 +30,7 @@ export default function TeamMembers() {
     setError(null);
     let cancelled = false;
     api
-      .get('/members')
+      .get('/members', { params: { academicYear } })
       .then((res) => {
         if (!cancelled) setMembers(res.data.members || []);
       })
@@ -45,7 +45,7 @@ export default function TeamMembers() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [academicYear]);
 
   useEffect(() => loadMembers(), [loadMembers]);
 
