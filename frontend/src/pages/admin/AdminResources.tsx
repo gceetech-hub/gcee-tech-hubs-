@@ -32,12 +32,16 @@ export default function AdminResources() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [error, setError] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get('/admin/resources');
       setResources(res.data.resources);
     } catch (err) {
+      setError(getErrorMessage(err));
       showApiError(err);
     } finally {
       setLoading(false);
@@ -182,6 +186,8 @@ export default function AdminResources() {
       {/* Main Content */}
       {loading ? (
         <PageLoader label="Loading resources…" />
+      ) : error ? (
+        <EmptyState title="Unable to load resources" description={error} action={<button onClick={() => load()} className="btn-outline">Try again</button>} />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<BookOpen className="h-8 w-8 text-purple-600" />}

@@ -54,12 +54,16 @@ export default function AdminMembers() {
   // Per-field validation errors from the backend (keyed e.g. `socialLinks.github`).
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  const [error, setError] = useState<string | null>(null);
+
   const loadMembers = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get('/admin/members');
       setMembers(res.data.members);
     } catch (err) {
+      setError(getErrorMessage(err));
       showApiError(err);
     } finally {
       setLoading(false);
@@ -193,6 +197,8 @@ export default function AdminMembers() {
 
       {loading ? (
         <PageLoader label="Loading members…" />
+      ) : error ? (
+        <EmptyState title="Unable to load members" description={error} action={<button onClick={() => loadMembers()} className="btn-outline">Try again</button>} />
       ) : grouped.length === 0 ? (
         <EmptyState
           icon={<UsersRound className="h-7 w-7" />}

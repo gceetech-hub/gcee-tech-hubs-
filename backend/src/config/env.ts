@@ -44,7 +44,7 @@ if (forceDns.length > 0) {
  * All verification links, QR codes, and email buttons are built
  * from this URL — it must always point to the official production deployment.
  */
-const CANONICAL_PRODUCTION_URL = 'https://gcee-tech-hub.vercel.app';
+const CANONICAL_PRODUCTION_URL = 'https://gcee-tech-hub-phi.vercel.app';
 
 /**
  * Get the public canonical URL of the application.
@@ -75,8 +75,8 @@ export function getPublicAppUrl(): string {
 
   for (let c of candidates) {
     if (c && typeof c === 'string' && c.trim() && !c.includes('localhost') && !c.includes('127.0.0.1')) {
-      c = c.replace('gdgoc-gcee-clubs.vercel.app', 'gcee-tech-hub.vercel.app');
-      c = c.replace('gdgoc-gcee.vercel.app', 'gcee-tech-hub.vercel.app');
+      c = c.replace('gdgoc-gcee-clubs.vercel.app', 'gcee-tech-hub-phi.vercel.app');
+      c = c.replace('gdgoc-gcee.vercel.app', 'gcee-tech-hub-phi.vercel.app');
       return c.trim().replace(/\/+$/, '');
     }
   }
@@ -88,7 +88,7 @@ export function getPublicAppUrl(): string {
 
   // Local development fallback
   const devCandidate = process.env.APP_URL || process.env.CLIENT_URL || 'http://localhost:5173';
-  return devCandidate.replace('gdgoc-gcee-clubs.vercel.app', 'gcee-tech-hub.vercel.app').replace('gdgoc-gcee.vercel.app', 'gcee-tech-hub.vercel.app').trim().replace(/\/+$/, '');
+  return devCandidate.replace('gdgoc-gcee-clubs.vercel.app', 'gcee-tech-hub-phi.vercel.app').replace('gdgoc-gcee.vercel.app', 'gcee-tech-hub-phi.vercel.app').trim().replace(/\/+$/, '');
 }
 
 
@@ -99,7 +99,7 @@ export function getPublicAppUrl(): string {
  * Event-specific registrationLink fields are intentionally ignored for emails;
  * the button always opens the official event page below.
  */
-export const EMAIL_REGISTRATION_URL = 'https://gcee-tech-hub.vercel.app/events/EV-2026-0001';
+export const EMAIL_REGISTRATION_URL = 'https://gcee-tech-hub-phi.vercel.app/events/EV-2026-0001';
 
 /**
  * The ONE official email address of the website.

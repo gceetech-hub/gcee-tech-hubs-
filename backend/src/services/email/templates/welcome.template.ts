@@ -19,7 +19,7 @@ function detailRow(label: string, value: string): string {
 
 export function generateWelcomeEmailHtml(opts: WelcomeEmailOptions): { subject: string; html: string; text: string } {
   const name = escapeHtml(opts.studentName || 'Student');
-  const siteUrl = escapeHtml(env.clientUrl || env.appUrl || 'https://gcee-tech-hub.vercel.app');
+  const siteUrl = escapeHtml(env.clientUrl || env.appUrl || 'https://gcee-tech-hub-phi.vercel.app');
   const subject = 'Welcome to GCEE Tech Hub';
 
   const rows = [

@@ -7,7 +7,7 @@ import { CLUB } from '../config/env.js';
 import { sendWebsiteEmail, escapeHtml, sanitizeHeaderValue } from '../services/emailService.js';
 import { baseEmailHtml } from '../services/email/templates/base.template.js';
 
-const CANONICAL_DOMAIN = 'https://gcee-tech-hub.vercel.app';
+const CANONICAL_DOMAIN = 'https://gcee-tech-hub-phi.vercel.app';
 
 /**
  * Generate Responsive Poster Email Template with GCEE Tech Hub branding & CTA

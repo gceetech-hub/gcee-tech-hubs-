@@ -47,10 +47,21 @@ export default function Events() {
     return () => { mounted = false; };
   }, [student]);
 
-  // Fetch events list from backend
+  const request = useRef<AbortController | null>(null);
+  const requestId = useRef(0);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
   const loadEvents = useCallback(async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
-    else setRefreshing(true);
+    if (isBackground && request.current) return;
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    const id = ++requestId.current;
+    if (!isBackground) {
+      setLoading(true);
+      setError(null);
+    }
+    setRefreshing(isBackground);
 
     try {
       const params: Record<string, string> = {};
@@ -59,50 +70,33 @@ export default function Events() {
       else if (tab !== 'All') params.category = tab;
       if (query.trim()) params.q = query.trim();
 
-      const res = await api.get('/events', { params });
-      const newEvents: GEvent[] = res.data.events || [];
+      const res = await api.get('/events', { params, signal: controller.signal });
+      if (controller.signal.aborted || id !== requestId.current) return;
+      setEvents(res.data.events || []);
+      setHasLoaded(true);
       setError(null);
-
-      setEvents((prevEvents) => {
-        // If query/tab changed or initial load, set directly
-        if (prevEvents.length === 0 || !isBackground) {
-          return newEvents;
-        }
-
-        // Seamless count update without jarring re-render
-        return newEvents.map((ne) => {
-          const old = prevEvents.find((pe) => pe.eventId === ne.eventId);
-          if (old && old.registeredCount !== ne.registeredCount) {
-            // Count changed live from another device/student!
-            return ne;
-          }
-          return ne;
-        });
-      });
     } catch (err) {
-      if (!isBackground) {
-        setError(getErrorMessage(err));
-        showApiError(err);
-      }
+      if (controller.signal.aborted || id !== requestId.current) return;
+      setError(getErrorMessage(err));
     } finally {
-      if (!isBackground) setLoading(false);
-      setRefreshing(false);
+      if (!controller.signal.aborted && id === requestId.current) {
+        request.current = null;
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [tab, query]);
 
-  // Initial and on filter change
   useEffect(() => {
+    setHasLoaded(false);
     loadEvents();
-  }, [loadEvents]);
-
-  // Real-time automatic data refresh polling (every 5 seconds)
-  // Ensures mobile and desktop screens automatically update from 0 -> 1 -> 2
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadEvents(true);
-    }, 5000);
-
-    return () => clearInterval(interval);
+    const interval = setInterval(() => loadEvents(true), 5000);
+    return () => {
+      clearInterval(interval);
+      request.current?.abort();
+      request.current = null;
+      requestId.current += 1;
+    };
   }, [loadEvents]);
 
   // Multi-tab / Multi-window Instant Sync via BroadcastChannel
@@ -213,9 +207,15 @@ export default function Events() {
 
       {/* Main Content Area */}
       <div className="container-x mt-8">
+        {!loading && error && hasLoaded && (
+          <div role="alert" className="mb-6 rounded-xl border border-g-red/20 bg-white p-4 text-sm text-g-red">
+            Live sync failed. Showing previously loaded events. {error}
+            <button onClick={() => loadEvents(true)} disabled={refreshing} className="btn-outline ml-3 text-xs">Try again</button>
+          </div>
+        )}
         {loading ? (
           <PageLoader label="Fetching live event attendee data..." />
-        ) : error ? (
+        ) : error && !hasLoaded ? (
           <EmptyState
             icon={<AlertTriangle className="h-8 w-8 text-g-red" />}
             title="Unable to load events"
@@ -246,7 +246,7 @@ export default function Events() {
                     </h2>
                   </div>
                   <span className="text-xs font-medium text-slate-400">
-                    Live attendee counts synced
+                    {error ? 'Live sync unavailable' : refreshing ? 'Syncing attendee counts…' : 'Live attendee counts synced'}
                   </span>
                 </div>
 

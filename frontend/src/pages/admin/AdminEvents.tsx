@@ -15,12 +15,16 @@ export default function AdminEvents() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
 
+  const [error, setError] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get('/admin/events');
       setEvents(res.data.events);
     } catch (err) {
+      setError(getErrorMessage(err));
       showApiError(err);
     } finally {
       setLoading(false);
@@ -125,6 +129,8 @@ export default function AdminEvents() {
 
       {loading ? (
         <PageLoader label="Loading events..." />
+      ) : error ? (
+        <EmptyState title="Unable to load events" description={error} action={<button onClick={() => load()} className="btn-outline">Try again</button>} />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<CalendarX2 className="h-7 w-7" />}

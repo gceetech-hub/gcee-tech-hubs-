@@ -22,13 +22,17 @@ export default function AdminMessages() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ContactMsg | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
       // Use form-registrations as fallback if contact messages endpoint not yet implemented
       const res = await api.get('/admin/form-registrations');
       setMessages(res.data.registrations || []);
     } catch (err) {
+      setError(getErrorMessage(err));
       showApiError(err);
     } finally {
       setLoading(false);

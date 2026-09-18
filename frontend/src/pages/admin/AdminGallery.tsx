@@ -16,12 +16,16 @@ export default function AdminGallery() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ title: '', category: 'Meetups', image: '' });
 
+  const [error, setError] = useState<string | null>(null);
+
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get('/gallery');
       setItems(res.data.items);
     } catch (err) {
+      setError(getErrorMessage(err));
       showApiError(err);
     } finally {
       setLoading(false);
@@ -92,6 +96,8 @@ export default function AdminGallery() {
 
       {loading ? (
         <PageLoader label="Loading gallery…" />
+      ) : error ? (
+        <EmptyState title="Unable to load gallery" description={error} action={<button onClick={() => load()} className="btn-outline">Try again</button>} />
       ) : items.length === 0 ? (
         <EmptyState
           icon={<ImageIcon className="h-7 w-7" />}

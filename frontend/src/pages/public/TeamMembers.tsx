@@ -9,21 +9,18 @@ import { api, getErrorMessage, showApiError } from '../../lib/api';
 import { sortMembersByRoleHierarchy } from '../../lib/utils';
 import type { Member } from '../../types';
 
-const ACADEMIC_YEARS = ['2026–27', '2025–26'];
-
-// Academic year runs June 1 → May 31 (e.g. "2026–27" = 2026-06-01 → 2027-05-31).
-function academicYearRange(academicYear: string): { start: number; end: number } {
-  const startYear = parseInt(academicYear, 10);
-  const start = new Date(Date.UTC(startYear, 5, 1)).getTime();
-  const end = new Date(Date.UTC(startYear + 1, 4, 31, 23, 59, 59, 999)).getTime();
-  return { start, end };
-}
+const now = new Date();
+const currentYear = now.getFullYear() - (now.getMonth() < 5 ? 1 : 0);
+const ACADEMIC_YEARS = Array.from(
+  { length: Math.max(currentYear - 2025 + 1, 1) },
+  (_, i) => `${currentYear - i}–${String(currentYear - i + 1).slice(-2)}`
+);
 
 export default function TeamMembers() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [academicYear, setAcademicYear] = useState('2026–27');
+  const [academicYear, setAcademicYear] = useState(ACADEMIC_YEARS[0]);
 
   const loadMembers = useCallback(() => {
     setLoading(true);
@@ -49,17 +46,7 @@ export default function TeamMembers() {
 
   useEffect(() => loadMembers(), [loadMembers]);
 
-  // Board tenure filter: members with a joinedDate are matched to the selected
-  // academic year window; legacy members without a joinedDate fall under the
-  // current board (the default selection) so they always remain visible.
-  const { start, end } = academicYearRange(academicYear);
-  const visibleMembers = members.filter((m) => {
-    if (!m.joinedDate) return academicYear === '2026–27';
-    const joined = new Date(m.joinedDate).getTime();
-    return joined >= start && joined <= end;
-  });
-
-  const sortedMembers = sortMembersByRoleHierarchy(visibleMembers);
+  const sortedMembers = sortMembersByRoleHierarchy(members);
   const hasMembers = sortedMembers.length > 0;
 
   return (

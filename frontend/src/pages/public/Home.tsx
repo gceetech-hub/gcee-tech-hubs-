@@ -59,65 +59,38 @@ export default function Home() {
   const [upcoming, setUpcoming] = useState<GEvent[]>([]);
   const [featured, setFeatured] = useState<GEvent | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
-  const [gallery, setGallery] = useState<GalleryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState({ stats: true, events: true, members: true });
+  const [errors, setErrors] = useState<Record<'stats' | 'events' | 'members', string | null>>({ stats: null, events: null, members: null });
 
   useEffect(() => {
-    let mounted = true;
-    async function load() {
-      // allSettled so one failing endpoint never blanks the whole homepage —
-      // whatever data is available renders immediately.
-      const results = await Promise.allSettled([
-        api.get('/stats'),
-        api.get('/events?limit=9'),
-        api.get('/members'),
-        api.get('/gallery?limit=8'),
-      ]);
-
-      if (!mounted) return;
-
-      const [statsRes, eventsRes, membersRes, galleryRes] = results;
-
-      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data.stats);
-
-      if (eventsRes.status === 'fulfilled') {
-        const events = eventsRes.value.data.events as GEvent[];
-        const validUpcoming = (events || []).filter((e) => {
-          const s = getEffectiveEventStatus(e);
-          return s === 'UPCOMING' || s === 'ONGOING';
-        });
-        setUpcoming(validUpcoming.slice(0, 3));
-        setFeatured((events || []).find((e) => e.isInauguration) || validUpcoming[0] || events?.[0] || null);
+    const controller = new AbortController();
+    const load = async (section: 'stats' | 'events' | 'members', url: string) => {
+      try {
+        const res = await api.get(url, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        if (section === 'stats') setStats(res.data.stats);
+        if (section === 'members') setMembers(res.data.members || []);
+        if (section === 'events') {
+          const events: GEvent[] = res.data.events || [];
+          const validUpcoming = events.filter((e) => {
+            const status = getEffectiveEventStatus(e);
+            return status === 'UPCOMING' || status === 'ONGOING';
+          });
+          setUpcoming(validUpcoming.slice(0, 3));
+          setFeatured(events.find((e) => e.isInauguration) || validUpcoming[0] || events[0] || null);
+        }
+        setErrors((prev) => ({ ...prev, [section]: null }));
+      } catch (err) {
+        if (!controller.signal.aborted) setErrors((prev) => ({ ...prev, [section]: getErrorMessage(err) }));
+      } finally {
+        if (!controller.signal.aborted) setLoading((prev) => ({ ...prev, [section]: false }));
       }
-
-      if (membersRes.status === 'fulfilled') setMembers(membersRes.value.data.members || []);
-      if (galleryRes.status === 'fulfilled') setGallery((galleryRes.value.data.items || []).slice(0, 6));
-
-      const failed = results.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
-      if (failed) {
-        setError(getErrorMessage(failed.reason));
-        showApiError(failed.reason);
-      } else {
-        setError(null);
-      }
-
-      setLoading(false);
-    }
-    load();
-    return () => {
-      mounted = false;
     };
+    load('stats', '/stats');
+    load('events', '/events?limit=9');
+    load('members', '/members');
+    return () => controller.abort();
   }, []);
-
-  if (loading) {
-    return (
-      <>
-        <Hero />
-        <PageLoader label="Loading community data…" />
-      </>
-    );
-  }
 
   return (
     <>
@@ -192,7 +165,11 @@ export default function Home() {
               subtitle="Mark your calendar — workshops, hackathons and meetups are always around the corner."
             />
           </Reveal>
-          {upcoming.length > 0 ? (
+          {loading.events ? (
+            <p role="status" className="p-8 text-center text-sm text-slate-500">Loading events…</p>
+          ) : errors.events ? (
+            <p role="alert" className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-g-red">Unable to load events. {errors.events}</p>
+          ) : upcoming.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {upcoming.map((event, i) => (
                 <Reveal key={event._id} delay={i * 90}>
@@ -203,9 +180,7 @@ export default function Home() {
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
               <p className="text-sm font-medium text-slate-500">
-                {error
-                  ? 'Unable to load events right now. Please try again shortly.'
-                  : 'All scheduled events are currently completed. Stay tuned for upcoming announcements!'}
+                No upcoming events are currently scheduled. Stay tuned for upcoming announcements!
               </p>
               <div className="mt-4">
                 <Link to="/events" className="btn-outline text-xs">
@@ -290,7 +265,11 @@ export default function Home() {
               className="[&_h2]:text-white [&_.mx-auto]:text-white/60"
             />
           </Reveal>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
+          {loading.stats ? (
+            <p role="status" className="p-6 text-center text-sm text-white/60">Loading community statistics…</p>
+          ) : errors.stats || !stats ? (
+            <p role="alert" className="p-6 text-center text-sm text-white/80">Unable to load community statistics. {errors.stats}</p>
+          ) : <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-6">
             {[
               { label: 'Community Members', value: stats?.members ?? stats?.totalStudents ?? 0, icon: Users },
               { label: 'Events Hosted', value: stats?.totalEvents ?? 0, icon: CalendarDays },
@@ -306,7 +285,7 @@ export default function Home() {
                 </div>
               </Reveal>
             ))}
-          </div>
+          </div>}
         </div>
       </section>
 
@@ -371,8 +350,10 @@ export default function Home() {
           </Reveal>
 
           {(() => {
+            if (loading.members) return <p role="status" className="p-8 text-center text-sm text-slate-500">Loading board members…</p>;
+            if (errors.members) return <p role="alert" className="rounded-2xl border border-slate-200 p-8 text-center text-sm text-g-red">Unable to load board members. {errors.members}</p>;
             const sorted = sortMembersByRoleHierarchy(members);
-            if (sorted.length === 0) return null;
+            if (sorted.length === 0) return <p className="rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No board members yet. Check back soon.</p>;
             return (
               <div className="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
                 {sorted.map((member, i) => (

@@ -4,7 +4,7 @@ Official website of **GCEE Tech Hub – Government College of Engineering, Erode
 
 A full-stack student technology community website for showcasing GCEE Tech Hub activities, events, registrations, announcements, workshops, projects, and community information.
 
-🌐 **Live Website:** https://gcee-tech-hub.vercel.app/
+🌐 **Live Website:** https://gcee-tech-hub-phi.vercel.app/
 
 ---
 
@@ -200,7 +200,7 @@ Install the following:
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/gceetech-hub/gcee-tech-hubs-.git
+git clone https://github.com/gcee-tech-hub/gcee-tech-hubs-.git
 cd gcee-tech-hubs-
 ```
 
@@ -662,7 +662,7 @@ The website is deployed on Vercel.
 
 🌐 **Production Website:**
 
-https://gcee-tech-hub.vercel.app/
+https://gcee-tech-hub-phi.vercel.app/
 
 Before deployment:
 
@@ -962,7 +962,7 @@ Use a Google App Password instead of the normal Gmail password.
 If frontend and backend are deployed separately, allow the frontend origin:
 
 ```text
-https://gcee-tech-hub.vercel.app
+https://gcee-tech-hub-phi.vercel.app
 ```
 
 Avoid using `*` unnecessarily when authentication or credentials are involved.
@@ -1210,7 +1210,7 @@ For website bugs, feature requests, improvements, or documentation changes:
 
 **GCEE Tech Hub – Government College of Engineering, Erode**
 
-🌐 **Live Website:** https://gcee-tech-hub.vercel.app/
+🌐 **Live Website:** https://gcee-tech-hub-phi.vercel.app/
 
 Built for the student technology community at **Government College of Engineering, Erode**.
 
@@ -1220,8 +1220,8 @@ Built for the student technology community at **Government College of Engineerin
 
 ```text
 Repository Name: gcee-tech-hubs-
-Organization: gceetech-hub
-Repository URL: https://github.com/gceetech-hub/gcee-tech-hubs-
+Organization: gcee-tech-hub
+Repository URL: https://github.com/gcee-tech-hub/gcee-tech-hubs-
 Project: GCEE Tech Hub
 ```
 
